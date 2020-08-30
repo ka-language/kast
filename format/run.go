@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	oatenc "github.com/omm-lang/oat/format/encoding"
 	"github.com/omm-lang/omm/lang/interpreter"
 	"github.com/omm-lang/omm/lang/types"
-	oatenc "github.com/omm-lang/omm/oat/encoding"
 )
 
 func Run(params types.CliParams) {

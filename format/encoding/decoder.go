@@ -3,13 +3,13 @@ package oatenc
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/omm-lang/framework"
 	. "github.com/omm-lang/omm/lang/types"
 )
 
@@ -73,11 +73,7 @@ func OatDecode(filename string, mode int) (map[string][]Action, error) {
 	minorv, _ := strconv.Atoi(version_spl[1])
 	bugv, _ := strconv.Atoi(version_spl[2])
 
-	if LASTDEP[0] >= majorv && LASTDEP[1] >= minorv && LASTDEP[2] >= bugv {
-		return nil, fmt.Errorf("Version %d.%d.%d has been depricated from your Omm version", majorv, minorv, bugv)
-	}
-
-	if majorv > OMM_MAJOR && minorv > OMM_MINOR && bugv > OMM_BUG {
+	if majorv > framework.OmmFrameworkMajor && minorv > framework.OmmFrameworkMinor && bugv > framework.OmmFrameworkBug {
 		return nil, errors.New("Please upgrade your omm version to " + vers + " in order use this oat")
 	}
 

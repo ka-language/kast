@@ -3,9 +3,6 @@ package oatenc
 //MAGIC is the omm magic number of oat
 const MAGIC = "OAT BETA"
 
-//LASTDEP is the deprecated version
-var LASTDEP = [3]int{1, 1, 1}
-
 var reserved = map[string]rune{
 	"next action":                    'అ',
 	"escaper":                        0,
