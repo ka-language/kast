@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/omm-lang/suite"
+	suite "github.com/omm-lang/omm-suite"
 	. "github.com/omm-lang/omm/lang/types"
 )
 
