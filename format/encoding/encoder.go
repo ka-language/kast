@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/omm-lang/framework"
+	"github.com/omm-lang/suite"
 	. "github.com/omm-lang/omm/lang/types"
 )
 
@@ -21,7 +21,7 @@ func OatEncode(filename string, data map[string][]Action) error {
 
 	//versioning and magic #
 	fmt.Fprint(f, MAGIC)
-	fmt.Fprintf(f, "%d.%d.%d\n", framework.OmmFrameworkMajor, framework.OmmFrameworkMajor, framework.OmmFrameworkMajor)
+	fmt.Fprintf(f, "%d.%d.%d\n", suite.OmmSuiteMajor, suite.OmmSuiteMajor, suite.OmmSuiteMajor)
 	////////////////////////
 
 	for k, v := range data {

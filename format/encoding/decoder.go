@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/omm-lang/framework"
+	"github.com/omm-lang/suite"
 	. "github.com/omm-lang/omm/lang/types"
 )
 
@@ -73,7 +73,7 @@ func OatDecode(filename string, mode int) (map[string][]Action, error) {
 	minorv, _ := strconv.Atoi(version_spl[1])
 	bugv, _ := strconv.Atoi(version_spl[2])
 
-	if majorv > framework.OmmFrameworkMajor && minorv > framework.OmmFrameworkMinor && bugv > framework.OmmFrameworkBug {
+	if majorv > suite.OmmSuiteMajor && minorv > suite.OmmSuiteMinor && bugv > suite.OmmSuiteBug {
 		return nil, errors.New("Please upgrade your omm version to " + vers + " in order use this oat")
 	}
 
@@ -239,14 +239,19 @@ func DecodeActions(encoded []rune) ([]Action, error) {
 					cv = cv[1:]
 
 					_arr := decode2d(cv, reserved["value seperator"])
-					arr := make([]*OmmType, len(_arr))
+					var arr []*OmmType
 
-					for k, v := range _arr {
+					for _, v := range _arr {
+
+						if len(v) == 0 {
+							continue
+						}
+
 						val, e := putval(v)
 						if e != nil {
 							return nil, e
 						}
-						arr[k] = &val
+						arr = append(arr, &val)
 					}
 
 					var ommarr OmmArray
@@ -347,6 +352,11 @@ func DecodeActions(encoded []rune) ([]Action, error) {
 					hash := make(map[string]*OmmType)
 
 					for _, v := range _hash {
+
+						if len(v[0]) == 0 || len(v[1]) == 0 {
+							continue
+						}
+
 						key := DecodeStr(v[0])
 						val, e := putval(v[1])
 						if e != nil {
