@@ -8,41 +8,35 @@ import (
 	"strings"
 
 	oat "github.com/omm-lang/oat/format"
+	suite "github.com/omm-lang/omm-suite"
 	"github.com/omm-lang/omm/lang/types"
 )
 
-var cwd = flag.String("cwd", "", "set cwd")
+var cwd = flag.String("cwd", "", "set the current working directory (automatically placed by the shell/pwsh script)")
+var output = flag.String("o", "", "set output file")
+var prec = flag.Uint64("prec", 20, "set the precision of an Omm instance")
+
+func init() {
+	flag.Usage = suite.Usagef("Oat")
+}
 
 func main() {
 	flag.Parse()
 
 	var cli_params types.CliParams
 
-	fmt.Println(flag.Args())
-
 	var opt = flag.Arg(0)
 	var filename = flag.Arg(1)
 	cli_params.Name = filename
-	var output = strings.TrimSuffix(filename, filepath.Ext(filename)) + ".oat" //remove the .omm and replace with .oat
 
-	//get the current working directory
-	//and change to it
-	os.Chdir(*cwd)
-
-	for i := 2; i < len(os.Args); i++ {
-		if flag.Arg(i) == "-o" || flag.Arg(i) == "--output" {
-			if i+1 < len(flag.Args()) {
-				output = flag.Arg(i + 1)
-			} else {
-				fmt.Println("Expected a value after", flag.Arg(i))
-				os.Exit(1)
-			}
-		}
+	if *output == "" {
+		*output = strings.TrimSuffix(filename, filepath.Ext(filename)) + ".oat" //remove the .omm and replace with .oat
 	}
+	cli_params.Output = *output
+	cli_params.Prec = *prec
 
 	if opt == "build" {
 		//if they want to build an oat
-		cli_params.Output = output
 		oat.Compile(cli_params)
 	} else if opt == "run" {
 		//if they want to run an oat
