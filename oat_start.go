@@ -25,8 +25,18 @@ func main() {
 
 	var cli_params types.CliParams
 
+	var filenamei = 1
+	for flag.Arg(filenamei) != "" && flag.Arg(filenamei)[0] == '-' {
+		filenamei++ //only inside the block for formatting
+	}
+
+	if flag.Arg(filenamei) == "" {
+		fmt.Println("Error, no input file was given")
+		os.Exit(1)
+	}
+
 	var opt = flag.Arg(0)
-	var filename = flag.Arg(1)
+	var filename = flag.Arg(filenamei)
 	cli_params.Name = filename
 
 	if *output == "" {
