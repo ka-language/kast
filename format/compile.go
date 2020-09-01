@@ -23,10 +23,10 @@ func Compile(params CliParams) {
 		os.Exit(1)
 	}
 
-	vars, ce := compiler.Compile(string(file), fileName, params)
+	vars, ce := compiler.Compile(string(file), params)
 
 	if ce != nil {
-		ce.Print()
+		fmt.Println(ce)
 	}
 
 	oatenc.OatEncode(params.Output, vars)
