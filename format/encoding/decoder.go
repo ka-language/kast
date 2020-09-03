@@ -15,7 +15,11 @@ import (
 
 var NOT_OAT error
 
-func OatDecode(filename string, mode int) (map[string][]Action, error) {
+func versionNormalize(major, minor, bug int) int { //convert a M.M.B version to a MMB number e.g. 1.2.3 -> 123
+	return (major * 100) + (minor * 10) + bug
+}
+
+func OatDecode(filename string) (map[string]*OmmType, error) {
 
 	NOT_OAT = errors.New("Given file is not an oat: " + filename)
 
@@ -67,13 +71,13 @@ func OatDecode(filename string, mode int) (map[string][]Action, error) {
 		return nil, NOT_OAT
 	}
 
-	version_spl := strings.Split(vers, ".")
+	versionSplitted := strings.Split(vers, ".")
 
-	majorv, _ := strconv.Atoi(version_spl[0])
-	minorv, _ := strconv.Atoi(version_spl[1])
-	bugv, _ := strconv.Atoi(version_spl[2])
+	majorv, _ := strconv.Atoi(versionSplitted[0])
+	minorv, _ := strconv.Atoi(versionSplitted[1])
+	bugv, _ := strconv.Atoi(versionSplitted[2])
 
-	if majorv > suite.OmmSuiteMajor && minorv > suite.OmmSuiteMinor && bugv > suite.OmmSuiteBug {
+	if versionNormalize(majorv, minorv, bugv) > versionNormalize(suite.OmmSuiteMajor, suite.OmmSuiteMinor, suite.OmmSuiteBug) {
 		return nil, errors.New("Please upgrade your omm version to " + vers + " in order use this oat")
 	}
 
@@ -114,34 +118,326 @@ func OatDecode(filename string, mode int) (map[string][]Action, error) {
 	//remove the trailing
 	encodedVars = encodedVars[:len(encodedVars)-1]
 
-	var decodedvars = make(map[string][]Action)
+	var decodedvars = make(map[string]*OmmType)
 
 	for _, v := range encodedVars {
-		decodedV, e := DecodeActions(v[1])
+		decodedV, e := DecodeValue(v[1])
 
 		if e != nil {
 			return nil, e
 		}
 
-		decodedvars[string(DecodeStr(v[0]))] = decodedV
+		decodedvars[string(DecodeStr(v[0]))] = &decodedV
 	}
 
-	if mode == 0 {
-		return decodedvars, nil
+	return decodedvars, nil
+}
+
+func DecodeValue(cv []rune) (OmmType, error) {
+
+	if len(cv) == 0 { //if it is nil return undef
+		return OmmUndef{}, nil
 	}
 
-	var all []Action
-	for k, v := range decodedvars {
-		all = append(all, Action{
-			Type:   "var",
-			Name:   k,
-			ExpAct: v,
-		})
-	}
-	return map[string][]Action{
-		"$main": all,
-	}, nil
+	switch cv[0] {
+	case reserved["make c-array"]:
 
+		cv = cv[1:]
+
+		_arr := decode2d(cv, reserved["value seperator"])
+		var arr []*OmmType
+
+		for _, v := range _arr {
+
+			if len(v) == 0 {
+				continue
+			}
+
+			val, e := DecodeValue(v)
+			if e != nil {
+				return nil, e
+			}
+			arr = append(arr, &val)
+		}
+
+		var ommarr OmmArray
+		ommarr.Array = arr
+		return ommarr, nil
+
+	case reserved["make bool"]:
+
+		if len(cv) != 3 {
+			return nil, NOT_OAT
+		}
+
+		cv = cv[2:]         //remove the "make bool" and the escaper
+		boolv := cv[0] == 1 //get the value as a bool (1 = true, 0 = false)
+
+		var ommbool OmmBool
+		ommbool.FromGoType(boolv)
+		return ommbool, nil
+
+	case reserved["start function"]:
+
+		if len(cv) < 2 { //it must (at least) start with "start function" and end with "end function"
+			return nil, NOT_OAT
+		}
+
+		cv = cv[1 : len(cv)-1]
+
+		var encodedoverloads = decode2d(cv, reserved["seperate overload"])
+
+		var overloads = make([]Overload, len(encodedoverloads)) //alloc the amount of overloads there are
+
+		for kk, vv := range encodedoverloads {
+
+			if len(vv) == 0 {
+				continue
+			}
+
+			var parambodysplit = decode2d(vv, reserved["param body split"]) //seperate the params and the body
+
+			if len(parambodysplit) != 2 {
+				return nil, NOT_OAT
+			}
+
+			params, encbody := decode3d(parambodysplit[0], reserved["seperate type-param"], reserved["value seperator"]), decode2d(parambodysplit[1], reserved["body var-ref split"])
+
+			var (
+				pnames []string
+				types  []string
+			)
+
+			for _, v := range params {
+
+				typed := string(DecodeStr(v[0]))
+				paramd := string(DecodeStr(v[1]))
+
+				if paramd == "" || typed == "" { //skip empty params
+					continue
+				}
+
+				types = append(types, typed)
+				pnames = append(pnames, paramd)
+			}
+
+			decbody, e := DecodeActions(encbody[0]) //decode the body of the function
+
+			if e != nil {
+				return nil, e
+			}
+
+			_varrefs := decode2d(encbody[1], reserved["value seperator"]) //seperate all of the var references
+			if len(_varrefs[len(_varrefs)-1]) == 0 {                      //remove the last empty one
+				_varrefs = _varrefs[:len(_varrefs)-1]
+			}
+			var varrefs = make([]string, len(_varrefs)) //alloc the space of the []string var refs
+
+			for k, v := range _varrefs {
+				varrefs[k] = string(DecodeStr(v))
+			}
+
+			overloads[kk] = Overload{
+				Params:  pnames,
+				Types:   types,
+				Body:    decbody,
+				VarRefs: varrefs,
+			}
+		}
+
+		var fn OmmFunc
+		fn.Overloads = overloads
+
+		return fn, nil
+
+	case reserved["make c-hash"]:
+
+		cv = cv[1:]
+
+		_hash := decode3d(cv, reserved["hash key seperator"], reserved["value seperator"])
+		hash := make(map[string]*OmmType)
+
+		for _, v := range _hash {
+
+			if len(v[0]) == 0 || len(v[1]) == 0 {
+				continue
+			}
+
+			key := DecodeStr(v[0])
+			val, e := DecodeValue(v[1])
+			if e != nil {
+				return nil, e
+			}
+
+			hash[string(key)] = &val
+		}
+
+		var ommhash OmmHash
+		ommhash.Hash = hash
+		return ommhash, nil
+
+	case reserved["start number"]:
+
+		if len(cv) < 2 { //numbers must at least have (start number - end number)
+			return nil, NOT_OAT
+		}
+
+		cv = cv[1 : len(cv)-1] //remove the previously mentioned (start number and end number paddings)
+
+		num := decode2d(cv, reserved["decimal spot"])
+
+		if len(num) > 2 || len(num) == 0 {
+			return nil, NOT_OAT
+		}
+
+		if len(num) == 1 {
+			num = append(num, []rune{})
+		}
+
+		var str1 = DecodeStr(num[0])
+		var str2 = DecodeStr(num[1])
+
+		var integer = make([]int64, len(str1))
+		var decimal = make([]int64, len(str2))
+
+		for k, v := range str1 {
+			integer[k] = int64(v)
+		}
+		for k, v := range str2 {
+			decimal[k] = int64(v)
+		}
+
+		var ommnum OmmNumber
+		ommnum.Integer = &integer
+		ommnum.Decimal = &decimal
+		return ommnum, nil
+
+	case reserved["start proto"]:
+
+		if len(cv) < 2 { //it must at least start with "start proto" and end with "end proto"
+			return nil, NOT_OAT
+		}
+
+		cv = cv[1 : len(cv)-1]
+
+		seperatedname := decode2d(cv, reserved["seperate proto name"])
+
+		if len(seperatedname) != 2 { //it must have a name and a body
+			return nil, NOT_OAT
+		}
+
+		name := string(DecodeStr(seperatedname[0]))
+
+		body := decode2d(seperatedname[1], reserved["seperate proto static instance"])
+
+		if len(body[len(body)-1]) == 0 {
+			body = body[:len(body)-1]
+		}
+
+		if len(body) != 2 && len(body) != 3 { //it must have a static and an instance
+			return nil, NOT_OAT
+		}
+
+		var parseprotobody = func(part []rune) (map[string]*OmmType, error) {
+			decoded := decode3d(part, reserved["hash key seperator"], reserved["value seperator"])
+
+			var protomap = make(map[string]*OmmType)
+
+			for _, v := range decoded {
+
+				if len(v[1]) == 0 { //if it is empty, skip it
+					continue
+				}
+
+				tmp, e := DecodeValue(v[1]) //create a tmp to create a ptr
+				if e != nil {
+					return nil, e
+				}
+				protomap[string(DecodeStr(v[0]))] = &tmp
+			}
+
+			return protomap, nil
+		}
+
+		//parse the static and the instance
+		static, e := parseprotobody(body[0])
+		if e != nil {
+			return nil, e
+		}
+		instance, e := parseprotobody(body[1])
+		if e != nil {
+			return nil, e
+		}
+		///////////////////////////////////
+
+		//also decode the access list (if there is one)
+		var accesslist = make(map[string][]string)
+
+		if len(body) == 3 {
+			decodedAccessList := decode3d(body[2], reserved["hash key seperator"], reserved["value seperator"])
+
+			for _, vv := range decodedAccessList {
+
+				if len(vv[0]) == 0 { //skip empty values
+					continue
+				}
+
+				curlist := decode2d(vv[1], reserved["sub value seperator"])
+				var parsedlist = make([]string, len(curlist))
+
+				for kk, vvv := range curlist {
+					parsedlist[kk] = string(DecodeStr(vvv))
+				}
+
+				accesslist[string(DecodeStr(vv[0]))] = parsedlist
+			}
+
+		}
+
+		var proto = OmmProto{
+			ProtoName:  name,
+			Static:     static,
+			Instance:   instance,
+			AccessList: accesslist,
+		}
+
+		return proto, nil
+
+	case reserved["make rune"]:
+
+		cv = cv[1:]
+
+		if len(cv) != 2 {
+			return nil, NOT_OAT
+		}
+
+		//runes must have an escaper and a rune
+
+		var ommrune OmmRune
+		ommrune.FromGoType(cv[1])
+		return ommrune, nil
+
+	case reserved["make string"]:
+
+		cv = cv[1:] //remove the "make string"
+
+		runelist := DecodeStr(cv)
+		var ommstr OmmString
+		ommstr.FromRuneList(runelist)
+		return ommstr, nil
+
+	case reserved["make undef"]:
+
+		if len(cv) != 1 {
+			return nil, NOT_OAT
+		}
+
+		var undef OmmUndef //declare an undefined variable
+		return undef, nil  //now return it
+
+	}
+
+	return nil, NOT_OAT
 }
 
 func DecodeActions(encoded []rune) ([]Action, error) {
@@ -226,318 +522,10 @@ func DecodeActions(encoded []rune) ([]Action, error) {
 
 		case "value":
 
-			var putval func([]rune) (OmmType, error)
-			putval = func(cv []rune) (OmmType, error) {
-
-				if len(cv) == 0 { //if it is nil return undef
-					return OmmUndef{}, nil
-				}
-
-				switch cv[0] {
-				case reserved["make c-array"]:
-
-					cv = cv[1:]
-
-					_arr := decode2d(cv, reserved["value seperator"])
-					var arr []*OmmType
-
-					for _, v := range _arr {
-
-						if len(v) == 0 {
-							continue
-						}
-
-						val, e := putval(v)
-						if e != nil {
-							return nil, e
-						}
-						arr = append(arr, &val)
-					}
-
-					var ommarr OmmArray
-					ommarr.Array = arr
-					return ommarr, nil
-
-				case reserved["make bool"]:
-
-					if len(cv) != 3 {
-						return nil, NOT_OAT
-					}
-
-					cv = cv[2:]         //remove the "make bool" and the escaper
-					boolv := cv[0] == 1 //get the value as a bool (1 = true, 0 = false)
-
-					var ommbool OmmBool
-					ommbool.FromGoType(boolv)
-					return ommbool, nil
-
-				case reserved["start function"]:
-
-					if len(cv) < 2 { //it must (at least) start with "start function" and end with "end function"
-						return nil, NOT_OAT
-					}
-
-					cv = cv[1 : len(cv)-1]
-
-					var encodedoverloads = decode2d(cv, reserved["seperate overload"])
-
-					var overloads = make([]Overload, len(encodedoverloads)) //alloc the amount of overloads there are
-
-					for kk, vv := range encodedoverloads {
-
-						if len(vv) == 0 {
-							continue
-						}
-
-						var parambodysplit = decode2d(vv, reserved["param body split"]) //seperate the params and the body
-
-						if len(parambodysplit) != 2 {
-							return nil, NOT_OAT
-						}
-
-						params, encbody := decode3d(parambodysplit[0], reserved["seperate type-param"], reserved["value seperator"]), decode2d(parambodysplit[1], reserved["body var-ref split"])
-
-						var (
-							pnames []string
-							types  []string
-						)
-
-						for _, v := range params {
-
-							typed := string(DecodeStr(v[0]))
-							paramd := string(DecodeStr(v[1]))
-
-							if paramd == "" || typed == "" { //skip empty params
-								continue
-							}
-
-							types = append(types, typed)
-							pnames = append(pnames, paramd)
-						}
-
-						decbody, e := DecodeActions(encbody[0]) //decode the body of the function
-
-						if e != nil {
-							return nil, e
-						}
-
-						_varrefs := decode2d(encbody[1], reserved["value seperator"]) //seperate all of the var references
-						if len(_varrefs[len(_varrefs)-1]) == 0 {                      //remove the last empty one
-							_varrefs = _varrefs[:len(_varrefs)-1]
-						}
-						var varrefs = make([]string, len(_varrefs)) //alloc the space of the []string var refs
-
-						for k, v := range _varrefs {
-							varrefs[k] = string(DecodeStr(v))
-						}
-
-						overloads[kk] = Overload{
-							Params:  pnames,
-							Types:   types,
-							Body:    decbody,
-							VarRefs: varrefs,
-						}
-					}
-
-					var fn OmmFunc
-					fn.Overloads = overloads
-
-					return fn, nil
-
-				case reserved["make c-hash"]:
-
-					cv = cv[1:]
-
-					_hash := decode3d(cv, reserved["hash key seperator"], reserved["value seperator"])
-					hash := make(map[string]*OmmType)
-
-					for _, v := range _hash {
-
-						if len(v[0]) == 0 || len(v[1]) == 0 {
-							continue
-						}
-
-						key := DecodeStr(v[0])
-						val, e := putval(v[1])
-						if e != nil {
-							return nil, e
-						}
-
-						hash[string(key)] = &val
-					}
-
-					var ommhash OmmHash
-					ommhash.Hash = hash
-					return ommhash, nil
-
-				case reserved["start number"]:
-
-					if len(cv) < 2 { //numbers must at least have (start number - end number)
-						return nil, NOT_OAT
-					}
-
-					cv = cv[1 : len(cv)-1] //remove the previously mentioned (start number and end number paddings)
-
-					num := decode2d(cv, reserved["decimal spot"])
-
-					if len(num) > 2 || len(num) == 0 {
-						return nil, NOT_OAT
-					}
-
-					if len(num) == 1 {
-						num = append(num, []rune{})
-					}
-
-					var str1 = DecodeStr(num[0])
-					var str2 = DecodeStr(num[1])
-
-					var integer = make([]int64, len(str1))
-					var decimal = make([]int64, len(str2))
-
-					for k, v := range str1 {
-						integer[k] = int64(v)
-					}
-					for k, v := range str2 {
-						decimal[k] = int64(v)
-					}
-
-					var ommnum OmmNumber
-					ommnum.Integer = &integer
-					ommnum.Decimal = &decimal
-					return ommnum, nil
-
-				case reserved["start proto"]:
-
-					if len(cv) < 2 { //it must at least start with "start proto" and end with "end proto"
-						return nil, NOT_OAT
-					}
-
-					cv = cv[1 : len(cv)-1]
-
-					seperatedname := decode2d(cv, reserved["seperate proto name"])
-
-					if len(seperatedname) != 2 { //it must have a name and a body
-						return nil, NOT_OAT
-					}
-
-					name := string(DecodeStr(seperatedname[0]))
-
-					body := decode2d(seperatedname[1], reserved["seperate proto static instance"])
-
-					if len(body[len(body)-1]) == 0 {
-						body = body[:len(body)-1]
-					}
-
-					if len(body) != 2 && len(body) != 3 { //it must have a static and an instance
-						return nil, NOT_OAT
-					}
-
-					var parseprotobody = func(part []rune) (map[string]*OmmType, error) {
-						decoded := decode3d(part, reserved["hash key seperator"], reserved["value seperator"])
-
-						var protomap = make(map[string]*OmmType)
-
-						for _, v := range decoded {
-
-							if len(v[1]) == 0 { //if it is empty, skip it
-								continue
-							}
-
-							tmp, e := putval(v[1]) //create a tmp to create a ptr
-							if e != nil {
-								return nil, e
-							}
-							protomap[string(DecodeStr(v[0]))] = &tmp
-						}
-
-						return protomap, nil
-					}
-
-					//parse the static and the instance
-					static, e := parseprotobody(body[0])
-					if e != nil {
-						return nil, e
-					}
-					instance, e := parseprotobody(body[1])
-					if e != nil {
-						return nil, e
-					}
-					///////////////////////////////////
-
-					//also decode the access list (if there is one)
-					var accesslist = make(map[string][]string)
-
-					if len(body) == 3 {
-						decodedAccessList := decode3d(body[2], reserved["hash key seperator"], reserved["value seperator"])
-
-						for _, vv := range decodedAccessList {
-
-							if len(vv[0]) == 0 { //skip empty values
-								continue
-							}
-
-							curlist := decode2d(vv[1], reserved["sub value seperator"])
-							var parsedlist = make([]string, len(curlist))
-
-							for kk, vvv := range curlist {
-								parsedlist[kk] = string(DecodeStr(vvv))
-							}
-
-							accesslist[string(DecodeStr(vv[0]))] = parsedlist
-						}
-
-					}
-
-					var proto = OmmProto{
-						ProtoName:  name,
-						Static:     static,
-						Instance:   instance,
-						AccessList: accesslist,
-					}
-
-					return proto, nil
-
-				case reserved["make rune"]:
-
-					cv = cv[1:]
-
-					if len(cv) != 2 {
-						return nil, NOT_OAT
-					}
-
-					//runes must have an escaper and a rune
-
-					var ommrune OmmRune
-					ommrune.FromGoType(cv[1])
-					return ommrune, nil
-
-				case reserved["make string"]:
-
-					cv = cv[1:] //remove the "make string"
-
-					runelist := DecodeStr(cv)
-					var ommstr OmmString
-					ommstr.FromRuneList(runelist)
-					return ommstr, nil
-
-				case reserved["make undef"]:
-
-					if len(cv) != 1 {
-						return nil, NOT_OAT
-					}
-
-					var undef OmmUndef //declare an undefined variable
-					return undef, nil  //now return it
-
-				}
-
-				return nil, NOT_OAT
-			}
-
 			if len(curval) > 0 { //only if there is a value
-				var e error                         //declare "e" here
-				(*curact).Value, e = putval(curval) //and then put the value of "e" here
-				if e != nil {                       //and now return the error if there was one
+				var e error                              //declare "e" here
+				(*curact).Value, e = DecodeValue(curval) //and then put the value of "e" here
+				if e != nil {                            //and now return the error if there was one
 					return nil, e
 				}
 			}

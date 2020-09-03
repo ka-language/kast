@@ -30,7 +30,7 @@ func main() {
 		filenamei++ //only inside the block for formatting
 	}
 
-	if flag.Arg(filenamei) == "" {
+	if flag.Arg(filenamei-1) == "" {
 		fmt.Println("Error, no input file was given")
 		os.Exit(1)
 	}

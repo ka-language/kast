@@ -11,7 +11,7 @@ import (
 )
 
 //export OatEncode
-func OatEncode(filename string, data map[string][]Action) error {
+func OatEncode(filename string, data map[string]*OmmType) error {
 
 	f, e := os.Create(filename)
 
@@ -21,7 +21,7 @@ func OatEncode(filename string, data map[string][]Action) error {
 
 	//versioning and magic #
 	fmt.Fprint(f, MAGIC)
-	fmt.Fprintf(f, "%d.%d.%d\n", suite.OmmSuiteMajor, suite.OmmSuiteMajor, suite.OmmSuiteMajor)
+	fmt.Fprintf(f, "%d.%d.%d\n", suite.OmmSuiteMajor, suite.OmmSuiteMinor, suite.OmmSuiteBug)
 	////////////////////////
 
 	for k, v := range data {
@@ -37,7 +37,7 @@ func OatEncode(filename string, data map[string][]Action) error {
 		fmt.Fprintf(f, format, nameinter...)
 		fmt.Fprintf(f, "%c", reserved["set global"])
 
-		var encoded = EncodeActions(v)
+		var encoded = EncodeValue(*v)
 
 		for _, v := range encoded {
 			fmt.Fprintf(f, "%c", v)
@@ -49,7 +49,151 @@ func OatEncode(filename string, data map[string][]Action) error {
 	return nil
 }
 
-//export EncodeActions
+func EncodeValue(v OmmType) []rune {
+
+	var final []rune
+
+	switch v.(type) {
+
+	case OmmArray:
+
+		final = append(final, reserved["make c-array"])
+
+		for _, v := range v.(OmmArray).Array {
+			final = append(final, EncodeValue(*v)...)
+			final = append(final, reserved["value seperator"])
+		}
+
+	case OmmBool:
+
+		final = append(final, reserved["make bool"], reserved["escaper"])
+		if v.(OmmBool).ToGoType() {
+			final = append(final, 1)
+		} else {
+			final = append(final, 0)
+		}
+
+	case OmmFunc:
+
+		final = append(final, reserved["start function"])
+
+		for _, v := range v.(OmmFunc).Overloads {
+			for k := range v.Params {
+				final = append(final, EncodeStr([]rune(v.Types[k]))...)
+				final = append(final, reserved["seperate type-param"])
+				final = append(final, EncodeStr([]rune(v.Params[k]))...)
+				final = append(final, reserved["value seperator"])
+			}
+			final = append(final, reserved["param body split"])
+			final = append(final, EncodeActions(v.Body)...)
+			final = append(final, reserved["body var-ref split"])
+
+			//list all of the variables that this function uses
+			for _, v := range v.VarRefs {
+				final = append(final, EncodeStr([]rune(v))...)
+				final = append(final, reserved["value seperator"])
+			}
+
+			final = append(final, reserved["seperate overload"])
+		}
+
+		final = append(final, reserved["end function"])
+
+	case OmmHash:
+
+		final = append(final, reserved["make c-hash"])
+
+		for k, v := range v.(OmmHash).Hash {
+			final = append(final, EncodeStr([]rune(k))...)
+			final = append(final, reserved["hash key seperator"])
+			final = append(final, EncodeValue(*v)...)
+			final = append(final, reserved["value seperator"])
+		}
+
+	case OmmNumber:
+
+		final = append(final, reserved["start number"])
+
+		if v.(OmmNumber).Integer != nil && len(*v.(OmmNumber).Integer) != 0 {
+			for _, v := range *v.(OmmNumber).Integer {
+				final = append(final, reserved["escaper"], rune(v))
+			}
+		}
+
+		final = append(final, reserved["decimal spot"])
+
+		if v.(OmmNumber).Decimal != nil && len(*v.(OmmNumber).Decimal) != 0 {
+			for _, v := range *v.(OmmNumber).Decimal {
+				final = append(final, reserved["escaper"], rune(v))
+			}
+		}
+
+		final = append(final, reserved["end number"])
+
+	case OmmProto:
+
+		final = append(final, reserved["start proto"])
+
+		//put the name
+		final = append(final, EncodeStr([]rune(v.(OmmProto).ProtoName))...)
+		final = append(final, reserved["seperate proto name"])
+		//////////////
+
+		for k, v := range v.(OmmProto).Static {
+			final = append(final, EncodeStr([]rune(k))...)
+			final = append(final, reserved["hash key seperator"])
+			final = append(final, EncodeValue(*v)...)
+			final = append(final, reserved["value seperator"])
+		}
+
+		final = append(final, reserved["seperate proto static instance"])
+
+		for k, v := range v.(OmmProto).Instance {
+			final = append(final, EncodeStr([]rune(k))...)
+			final = append(final, reserved["hash key seperator"])
+			final = append(final, EncodeValue(*v)...)
+			final = append(final, reserved["value seperator"])
+		}
+
+		final = append(final, reserved["seperate proto static instance"])
+
+		/*       put the access list       */
+		for k, v := range v.(OmmProto).AccessList {
+			final = append(final, EncodeStr([]rune(k))...)
+			final = append(final, reserved["hash key seperator"])
+
+			for _, vv := range v {
+				final = append(final, EncodeStr([]rune(vv))...)
+				final = append(final, reserved["sub value seperator"])
+			}
+
+			final = append(final, reserved["value seperator"])
+		}
+		/////////////////////////////////////
+
+		final = append(final, reserved["seperate proto static instance"]) //also put the seperator here to denote the access list
+
+		final = append(final, reserved["end proto"])
+
+	case OmmRune:
+
+		final = append(final, reserved["make rune"], reserved["escaper"])
+		final = append(final, v.(OmmRune).ToGoType())
+
+	case OmmString:
+
+		final = append(final, reserved["make string"])
+		final = append(final, EncodeStr(v.(OmmString).String)...)
+
+	case OmmUndef:
+
+		final = append(final, reserved["make undef"])
+
+	}
+
+	return final
+}
+
 func EncodeActions(data []Action) []rune {
 
 	var final []rune
@@ -79,153 +223,7 @@ func EncodeActions(data []Action) []rune {
 
 			case "Value":
 
-				var putval func(v OmmType) []rune
-				putval = func(v OmmType) []rune {
-
-					var final []rune
-
-					switch v.(type) {
-
-					case OmmArray:
-
-						final = append(final, reserved["make c-array"])
-
-						for _, v := range v.(OmmArray).Array {
-							final = append(final, putval(*v)...)
-							final = append(final, reserved["value seperator"])
-						}
-
-					case OmmBool:
-
-						final = append(final, reserved["make bool"], reserved["escaper"])
-						if v.(OmmBool).ToGoType() {
-							final = append(final, 1)
-						} else {
-							final = append(final, 0)
-						}
-
-					case OmmFunc:
-
-						final = append(final, reserved["start function"])
-
-						for _, v := range v.(OmmFunc).Overloads {
-							for k := range v.Params {
-								final = append(final, EncodeStr([]rune(v.Types[k]))...)
-								final = append(final, reserved["seperate type-param"])
-								final = append(final, EncodeStr([]rune(v.Params[k]))...)
-								final = append(final, reserved["value seperator"])
-							}
-							final = append(final, reserved["param body split"])
-							final = append(final, EncodeActions(v.Body)...)
-							final = append(final, reserved["body var-ref split"])
-
-							//list all of the variables that this function uses
-							for _, v := range v.VarRefs {
-								final = append(final, EncodeStr([]rune(v))...)
-								final = append(final, reserved["value seperator"])
-							}
-
-							final = append(final, reserved["seperate overload"])
-						}
-
-						final = append(final, reserved["end function"])
-
-					case OmmHash:
-
-						final = append(final, reserved["make c-hash"])
-
-						for k, v := range v.(OmmHash).Hash {
-							final = append(final, EncodeStr([]rune(k))...)
-							final = append(final, reserved["hash key seperator"])
-							final = append(final, putval(*v)...)
-							final = append(final, reserved["value seperator"])
-						}
-
-					case OmmNumber:
-
-						final = append(final, reserved["start number"])
-
-						if v.(OmmNumber).Integer != nil && len(*v.(OmmNumber).Integer) != 0 {
-							for _, v := range *v.(OmmNumber).Integer {
-								final = append(final, reserved["escaper"], rune(v))
-							}
-						}
-
-						final = append(final, reserved["decimal spot"])
-
-						if v.(OmmNumber).Decimal != nil && len(*v.(OmmNumber).Decimal) != 0 {
-							for _, v := range *v.(OmmNumber).Decimal {
-								final = append(final, reserved["escaper"], rune(v))
-							}
-						}
-
-						final = append(final, reserved["end number"])
-
-					case OmmProto:
-
-						final = append(final, reserved["start proto"])
-
-						//put the name
-						final = append(final, EncodeStr([]rune(v.(OmmProto).ProtoName))...)
-						final = append(final, reserved["seperate proto name"])
-						//////////////
-
-						for k, v := range v.(OmmProto).Static {
-							final = append(final, EncodeStr([]rune(k))...)
-							final = append(final, reserved["hash key seperator"])
-							final = append(final, putval(*v)...)
-							final = append(final, reserved["value seperator"])
-						}
-
-						final = append(final, reserved["seperate proto static instance"])
-
-						for k, v := range v.(OmmProto).Instance {
-							final = append(final, EncodeStr([]rune(k))...)
-							final = append(final, reserved["hash key seperator"])
-							final = append(final, putval(*v)...)
-							final = append(final, reserved["value seperator"])
-						}
-
-						final = append(final, reserved["seperate proto static instance"])
-
-						/*       put the access list       */
-						for k, v := range v.(OmmProto).AccessList {
-							final = append(final, EncodeStr([]rune(k))...)
-							final = append(final, reserved["hash key seperator"])
-
-							for _, vv := range v {
-								final = append(final, EncodeStr([]rune(vv))...)
-								final = append(final, reserved["sub value seperator"])
-							}
-
-							final = append(final, reserved["value seperator"])
-						}
-						/////////////////////////////////////
-
-						final = append(final, reserved["seperate proto static instance"]) //also put the seperator here to denote the access list
-
-						final = append(final, reserved["end proto"])
-
-					case OmmRune:
-
-						final = append(final, reserved["make rune"], reserved["escaper"])
-						final = append(final, v.(OmmRune).ToGoType())
-
-					case OmmString:
-
-						final = append(final, reserved["make string"])
-						final = append(final, EncodeStr(v.(OmmString).String)...)
-
-					case OmmUndef:
-
-						final = append(final, reserved["make undef"])
-
-					}
-
-					return final
-				}
-
-				final = append(final, putval(v.Value)...)
+				final = append(final, EncodeValue(v.Value)...)
 
 			case "ExpAct":
 
