@@ -12,9 +12,9 @@ import (
 	"github.com/omm-lang/omm/lang/types"
 )
 
-var cwd = flag.String("cwd", "", "set the current working directory (automatically placed by the shell/pwsh script)")
-var output = flag.String("o", "", "set output file")
-var prec = flag.Uint64("prec", 20, "set the precision of an Omm instance")
+var cwd = flag.String("cwd", "", "Set the current working directory (automatically placed by the shell/pwsh script)")
+var output = flag.String("out", "", "Set output file")
+var prec = flag.Uint64("prec", 20, "Set the precision of an Omm instance when running an oat file")
 
 func init() {
 	flag.Usage = suite.Usagef("Oat")
