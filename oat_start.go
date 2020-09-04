@@ -23,18 +23,13 @@ func main() {
 
 	var cli_params types.CliParams
 
-	var filenamei = 1
-	for flag.Arg(filenamei) != "" && flag.Arg(filenamei)[0] == '-' {
-		filenamei++ //only inside the block for formatting
-	}
-
-	if flag.Arg(filenamei-1) == "" {
-		fmt.Println("Error, no input file was given")
+	if len(flag.Arg(1)) != 0 && flag.Arg(1)[0] == '-' {
+		fmt.Println("Error, must list the filename as the second parameter")
 		os.Exit(1)
 	}
 
 	var opt = flag.Arg(0)
-	var filename = flag.Arg(filenamei)
+	var filename = flag.Arg(1)
 	cli_params.Name = filename
 
 	if *output == "" {
@@ -47,10 +42,12 @@ func main() {
 		oat.Compile(cli_params)
 	} else if opt == "run" {
 
-		if *output == "" {
+		if *output != "" {
 			fmt.Println("Error, cannot use -out while running an oat file")
 			os.Exit(1)
 		}
+
+		os.Args = os.Args[2:] //remove the oat run
 
 		//if they want to run an oat
 		oat.Run(cli_params)
