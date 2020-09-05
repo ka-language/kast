@@ -162,6 +162,7 @@ func DecodeValue(cv []rune) (OmmType, error) {
 
 		var ommarr OmmArray
 		ommarr.Array = arr
+		ommarr.Length = uint64(len(arr))
 		return ommarr, nil
 
 	case reserved["make bool"]:
@@ -274,6 +275,7 @@ func DecodeValue(cv []rune) (OmmType, error) {
 
 		var ommhash OmmHash
 		ommhash.Hash = hash
+		ommhash.Length = uint64(len(hash))
 		return ommhash, nil
 
 	case reserved["start number"]:
