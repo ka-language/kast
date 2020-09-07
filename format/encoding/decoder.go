@@ -145,7 +145,7 @@ func DecodeValue(cv []rune) (OmmType, error) {
 		cv = cv[1:]
 
 		_arr := decode2d(cv, reserved["value seperator"])
-		var arr []*OmmType
+		var ommarray OmmArray
 
 		for _, v := range _arr {
 
@@ -157,12 +157,10 @@ func DecodeValue(cv []rune) (OmmType, error) {
 			if e != nil {
 				return nil, e
 			}
-			arr = append(arr, &val)
+			ommarray.PushBack(val)
 		}
 
 		var ommarr OmmArray
-		ommarr.Array = arr
-		ommarr.Length = uint64(len(arr))
 		return ommarr, nil
 
 	case reserved["make bool"]:
@@ -256,7 +254,7 @@ func DecodeValue(cv []rune) (OmmType, error) {
 		cv = cv[1:]
 
 		_hash := decode3d(cv, reserved["hash key seperator"], reserved["value seperator"])
-		hash := make(map[string]*OmmType)
+		var ommhash OmmHash
 
 		for _, v := range _hash {
 
@@ -270,12 +268,9 @@ func DecodeValue(cv []rune) (OmmType, error) {
 				return nil, e
 			}
 
-			hash[string(key)] = &val
+			ommhash.Set(string(key), val)
 		}
 
-		var ommhash OmmHash
-		ommhash.Hash = hash
-		ommhash.Length = uint64(len(hash))
 		return ommhash, nil
 
 	case reserved["start number"]:

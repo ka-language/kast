@@ -183,7 +183,7 @@ func EncodeValue(v OmmType) []rune {
 	case OmmString:
 
 		final = append(final, reserved["make string"])
-		final = append(final, EncodeStr(v.(OmmString).String)...)
+		final = append(final, v.(OmmString).ToRuneList()...)
 
 	case OmmUndef:
 
