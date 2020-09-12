@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"strings"
 
-	suite "github.com/omm-lang/omm-suite"
-	. "github.com/omm-lang/omm/lang/types"
+	suite "omm-suite"
+	. "omm/lang/types"
 )
 
 //export OatEncode

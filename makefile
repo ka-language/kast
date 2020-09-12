@@ -6,7 +6,7 @@ else
 	BINARY = oat_start
 endif
 
-GOPATH = $(CURDIR)/../../../../
+GOPATH = $(CURDIR)/..
 
 .PHONY: all
 all:

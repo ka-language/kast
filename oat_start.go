@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	oat "github.com/omm-lang/oat/format"
-	suite "github.com/omm-lang/omm-suite"
-	"github.com/omm-lang/omm/lang/types"
+	oat "oat/format"
+	suite "omm-suite"
+	"omm/lang/types"
 )
 
 var output = flag.String("out", "", "Set output file")

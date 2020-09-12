@@ -3,11 +3,11 @@ package oat
 import (
 	"fmt"
 
-	. "github.com/omm-lang/omm/lang/types"
+	. "omm/lang/types"
 
-	"github.com/omm-lang/omm/lang/compiler"
+	"omm/lang/compiler"
 
-	oatenc "github.com/omm-lang/oat/format/encoding"
+	oatenc "oat/format/encoding"
 )
 
 //export Compile
