@@ -3,9 +3,9 @@ package oat
 import (
 	"fmt"
 
-	. "omm/lang/types"
+	. "ka/lang/types"
 
-	"omm/lang/compiler"
+	"ka/lang/compiler"
 
 	oatenc "oat/format/encoding"
 )
@@ -18,5 +18,5 @@ func Compile(params CliParams) {
 		fmt.Println(ce)
 	}
 
-	oatenc.OatEncode(params.Output, vars)
+	oatenc.KastEncode(params.Output, vars)
 }

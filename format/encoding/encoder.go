@@ -1,17 +1,17 @@
-package oatenc
+package kastenc
 
 import (
 	"fmt"
+	"kore"
 	"os"
 	"reflect"
 	"strings"
 
-	suite "omm-suite"
-	. "omm/lang/types"
+	. "ka/lang/types"
 )
 
-//export OatEncode
-func OatEncode(filename string, data map[string]*OmmType) error {
+//export KastEncode
+func KastEncode(filename string, data map[string]*KaType) error {
 
 	f, e := os.Create(filename)
 
@@ -21,7 +21,7 @@ func OatEncode(filename string, data map[string]*OmmType) error {
 
 	//versioning and magic #
 	fmt.Fprint(f, MAGIC)
-	fmt.Fprintf(f, "%d.%d.%d\n", suite.OmmSuiteMajor, suite.OmmSuiteMinor, suite.OmmSuiteBug)
+	fmt.Fprintf(f, "%d.%d.%d\n", kore.KoreMajor, kore.KoreMinor, kore.KoreBug)
 	////////////////////////
 
 	for k, v := range data {
@@ -49,35 +49,35 @@ func OatEncode(filename string, data map[string]*OmmType) error {
 	return nil
 }
 
-func EncodeValue(v OmmType) []rune {
+func EncodeValue(v KaType) []rune {
 
 	var final []rune
 
 	switch v.(type) {
 
-	case OmmArray:
+	case KaArray:
 
 		final = append(final, reserved["make c-array"])
 
-		for _, v := range v.(OmmArray).Array {
+		for _, v := range v.(KaArray).Array {
 			final = append(final, EncodeValue(*v)...)
 			final = append(final, reserved["value seperator"])
 		}
 
-	case OmmBool:
+	case KaBool:
 
 		final = append(final, reserved["make bool"], reserved["escaper"])
-		if v.(OmmBool).ToGoType() {
+		if v.(KaBool).ToGoType() {
 			final = append(final, 1)
 		} else {
 			final = append(final, 0)
 		}
 
-	case OmmFunc:
+	case KaFunc:
 
 		final = append(final, reserved["start function"])
 
-		for _, v := range v.(OmmFunc).Overloads {
+		for _, v := range v.(KaFunc).Overloads {
 			for k := range v.Params {
 				final = append(final, EncodeStr([]rune(v.Types[k]))...)
 				final = append(final, reserved["seperate type-param"])
@@ -99,47 +99,47 @@ func EncodeValue(v OmmType) []rune {
 
 		final = append(final, reserved["end function"])
 
-	case OmmHash:
+	case KaHash:
 
 		final = append(final, reserved["make c-hash"])
 
-		for k, v := range v.(OmmHash).Hash {
+		for k, v := range v.(KaHash).Hash {
 			final = append(final, EncodeStr([]rune(k))...)
 			final = append(final, reserved["hash key seperator"])
 			final = append(final, EncodeValue(*v)...)
 			final = append(final, reserved["value seperator"])
 		}
 
-	case OmmNumber:
+	case KaNumber:
 
 		final = append(final, reserved["start number"])
 
-		if v.(OmmNumber).Integer != nil && len(*v.(OmmNumber).Integer) != 0 {
-			for _, v := range *v.(OmmNumber).Integer {
+		if v.(KaNumber).Integer != nil && len(*v.(KaNumber).Integer) != 0 {
+			for _, v := range *v.(KaNumber).Integer {
 				final = append(final, reserved["escaper"], rune(v))
 			}
 		}
 
 		final = append(final, reserved["decimal spot"])
 
-		if v.(OmmNumber).Decimal != nil && len(*v.(OmmNumber).Decimal) != 0 {
-			for _, v := range *v.(OmmNumber).Decimal {
+		if v.(KaNumber).Decimal != nil && len(*v.(KaNumber).Decimal) != 0 {
+			for _, v := range *v.(KaNumber).Decimal {
 				final = append(final, reserved["escaper"], rune(v))
 			}
 		}
 
 		final = append(final, reserved["end number"])
 
-	case OmmProto:
+	case KaProto:
 
 		final = append(final, reserved["start proto"])
 
 		//put the name
-		final = append(final, EncodeStr([]rune(v.(OmmProto).ProtoName))...)
+		final = append(final, EncodeStr([]rune(v.(KaProto).ProtoName))...)
 		final = append(final, reserved["seperate proto name"])
 		//////////////
 
-		for k, v := range v.(OmmProto).Static {
+		for k, v := range v.(KaProto).Static {
 			final = append(final, EncodeStr([]rune(k))...)
 			final = append(final, reserved["hash key seperator"])
 			final = append(final, EncodeValue(*v)...)
@@ -148,7 +148,7 @@ func EncodeValue(v OmmType) []rune {
 
 		final = append(final, reserved["seperate proto static instance"])
 
-		for k, v := range v.(OmmProto).Instance {
+		for k, v := range v.(KaProto).Instance {
 			final = append(final, EncodeStr([]rune(k))...)
 			final = append(final, reserved["hash key seperator"])
 			final = append(final, EncodeValue(*v)...)
@@ -158,7 +158,7 @@ func EncodeValue(v OmmType) []rune {
 		final = append(final, reserved["seperate proto static instance"])
 
 		/*       put the access list       */
-		for k, v := range v.(OmmProto).AccessList {
+		for k, v := range v.(KaProto).AccessList {
 			final = append(final, EncodeStr([]rune(k))...)
 			final = append(final, reserved["hash key seperator"])
 
@@ -175,17 +175,17 @@ func EncodeValue(v OmmType) []rune {
 
 		final = append(final, reserved["end proto"])
 
-	case OmmRune:
+	case KaRune:
 
 		final = append(final, reserved["make rune"], reserved["escaper"])
-		final = append(final, v.(OmmRune).ToGoType())
+		final = append(final, v.(KaRune).ToGoType())
 
-	case OmmString:
+	case KaString:
 
 		final = append(final, reserved["make string"])
-		final = append(final, v.(OmmString).ToRuneList()...)
+		final = append(final, v.(KaString).ToRuneList()...)
 
-	case OmmUndef:
+	case KaUndef:
 
 		final = append(final, reserved["make undef"])
 

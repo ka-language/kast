@@ -8,14 +8,14 @@ import (
 	"strings"
 
 	oat "oat/format"
-	suite "omm-suite"
-	"omm/lang/types"
+	suite "ka-suite"
+	"ka/lang/types"
 )
 
 var output = flag.String("out", "", "Set output file")
 
 func init() {
-	flag.Usage = suite.Usagef("Oat")
+	flag.Usage = suite.Usagef("Kast")
 }
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 	cli_params.Name = filename
 
 	if *output == "" {
-		*output = strings.TrimSuffix(filename, filepath.Ext(filename)) + ".oat" //remove the .omm and replace with .oat
+		*output = strings.TrimSuffix(filename, filepath.Ext(filename)) + ".oat" //remove the .ka and replace with .oat
 	}
 	cli_params.Output = *output
 

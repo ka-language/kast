@@ -1,4 +1,4 @@
-package oatenc
+package kastenc
 
 import (
 	"bufio"
@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	suite "omm-suite"
-	. "omm/lang/types"
+	. "ka/lang/types"
+	"kore"
 )
 
 var NOT_OAT error
@@ -19,7 +19,7 @@ func versionNormalize(major, minor, bug int) int { //convert a M.M.B version to 
 	return (major * 100) + (minor * 10) + bug
 }
 
-func OatDecode(filename string) (map[string]*OmmType, error) {
+func KastDecode(filename string) (map[string]*KaType, error) {
 
 	NOT_OAT = errors.New("Given file is not an oat: " + filename)
 
@@ -31,7 +31,7 @@ func OatDecode(filename string) (map[string]*OmmType, error) {
 
 	reader := bufio.NewReader(file)
 
-	var vers = "" //store the omm version
+	var vers = "" //store the ka version
 	var data []rune
 	var cur bool = true
 
@@ -77,8 +77,8 @@ func OatDecode(filename string) (map[string]*OmmType, error) {
 	minorv, _ := strconv.Atoi(versionSplitted[1])
 	bugv, _ := strconv.Atoi(versionSplitted[2])
 
-	if versionNormalize(majorv, minorv, bugv) > versionNormalize(suite.OmmSuiteMajor, suite.OmmSuiteMinor, suite.OmmSuiteBug) {
-		return nil, errors.New("Please upgrade your omm version to " + vers + " in order use this oat")
+	if versionNormalize(majorv, minorv, bugv) > versionNormalize(kore.KoreMajor, kore.KoreMinor, kore.KoreBug) {
+		return nil, errors.New("Please upgrade your ka version to " + vers + " in order use this oat")
 	}
 
 	var encodedVars = make([][2][]rune, 1)
@@ -118,7 +118,7 @@ func OatDecode(filename string) (map[string]*OmmType, error) {
 	//remove the trailing
 	encodedVars = encodedVars[:len(encodedVars)-1]
 
-	var decodedvars = make(map[string]*OmmType)
+	var decodedvars = make(map[string]*KaType)
 
 	for _, v := range encodedVars {
 		decodedV, e := DecodeValue(v[1])
@@ -133,10 +133,10 @@ func OatDecode(filename string) (map[string]*OmmType, error) {
 	return decodedvars, nil
 }
 
-func DecodeValue(cv []rune) (OmmType, error) {
+func DecodeValue(cv []rune) (KaType, error) {
 
 	if len(cv) == 0 { //if it is nil return undef
-		return OmmUndef{}, nil
+		return KaUndef{}, nil
 	}
 
 	switch cv[0] {
@@ -145,7 +145,7 @@ func DecodeValue(cv []rune) (OmmType, error) {
 		cv = cv[1:]
 
 		_arr := decode2d(cv, reserved["value seperator"])
-		var ommarray OmmArray
+		var kaarray KaArray
 
 		for _, v := range _arr {
 
@@ -157,11 +157,11 @@ func DecodeValue(cv []rune) (OmmType, error) {
 			if e != nil {
 				return nil, e
 			}
-			ommarray.PushBack(val)
+			kaarray.PushBack(val)
 		}
 
-		var ommarr OmmArray
-		return ommarr, nil
+		var kaarr KaArray
+		return kaarr, nil
 
 	case reserved["make bool"]:
 
@@ -172,9 +172,9 @@ func DecodeValue(cv []rune) (OmmType, error) {
 		cv = cv[2:]         //remove the "make bool" and the escaper
 		boolv := cv[0] == 1 //get the value as a bool (1 = true, 0 = false)
 
-		var ommbool OmmBool
-		ommbool.FromGoType(boolv)
-		return ommbool, nil
+		var kabool KaBool
+		kabool.FromGoType(boolv)
+		return kabool, nil
 
 	case reserved["start function"]:
 
@@ -244,7 +244,7 @@ func DecodeValue(cv []rune) (OmmType, error) {
 			}
 		}
 
-		var fn OmmFunc
+		var fn KaFunc
 		fn.Overloads = overloads
 
 		return fn, nil
@@ -254,7 +254,7 @@ func DecodeValue(cv []rune) (OmmType, error) {
 		cv = cv[1:]
 
 		_hash := decode3d(cv, reserved["hash key seperator"], reserved["value seperator"])
-		var ommhash OmmHash
+		var kahash KaHash
 
 		for _, v := range _hash {
 
@@ -268,10 +268,10 @@ func DecodeValue(cv []rune) (OmmType, error) {
 				return nil, e
 			}
 
-			ommhash.Set(string(key), val)
+			kahash.Set(string(key), val)
 		}
 
-		return ommhash, nil
+		return kahash, nil
 
 	case reserved["start number"]:
 
@@ -304,10 +304,10 @@ func DecodeValue(cv []rune) (OmmType, error) {
 			decimal[k] = int64(v)
 		}
 
-		var ommnum OmmNumber
-		ommnum.Integer = &integer
-		ommnum.Decimal = &decimal
-		return ommnum, nil
+		var kanum KaNumber
+		kanum.Integer = &integer
+		kanum.Decimal = &decimal
+		return kanum, nil
 
 	case reserved["start proto"]:
 
@@ -335,10 +335,10 @@ func DecodeValue(cv []rune) (OmmType, error) {
 			return nil, NOT_OAT
 		}
 
-		var parseprotobody = func(part []rune) (map[string]*OmmType, error) {
+		var parseprotobody = func(part []rune) (map[string]*KaType, error) {
 			decoded := decode3d(part, reserved["hash key seperator"], reserved["value seperator"])
 
-			var protomap = make(map[string]*OmmType)
+			var protomap = make(map[string]*KaType)
 
 			for _, v := range decoded {
 
@@ -391,7 +391,7 @@ func DecodeValue(cv []rune) (OmmType, error) {
 
 		}
 
-		var proto = OmmProto{
+		var proto = KaProto{
 			ProtoName:  name,
 			Static:     static,
 			Instance:   instance,
@@ -410,18 +410,18 @@ func DecodeValue(cv []rune) (OmmType, error) {
 
 		//runes must have an escaper and a rune
 
-		var ommrune OmmRune
-		ommrune.FromGoType(cv[1])
-		return ommrune, nil
+		var karune KaRune
+		karune.FromGoType(cv[1])
+		return karune, nil
 
 	case reserved["make string"]:
 
 		cv = cv[1:] //remove the "make string"
 
 		runelist := DecodeStr(cv)
-		var ommstr OmmString
-		ommstr.FromRuneList(runelist)
-		return ommstr, nil
+		var kastr KaString
+		kastr.FromRuneList(runelist)
+		return kastr, nil
 
 	case reserved["make undef"]:
 
@@ -429,8 +429,8 @@ func DecodeValue(cv []rune) (OmmType, error) {
 			return nil, NOT_OAT
 		}
 
-		var undef OmmUndef //declare an undefined variable
-		return undef, nil  //now return it
+		var undef KaUndef //declare an undefined variable
+		return undef, nil //now return it
 
 	}
 

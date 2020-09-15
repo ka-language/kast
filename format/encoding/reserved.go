@@ -1,7 +1,7 @@
-package oatenc
+package kastenc
 
-//MAGIC is the omm magic number of oat
-const MAGIC = "OAT BETA"
+//MAGIC is the kast magic number
+const MAGIC = "KAST BETA"
 
 var reserved = map[string]rune{
 	"next action":                    'అ',
