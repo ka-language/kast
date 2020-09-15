@@ -6,4 +6,4 @@ if ($args[0] -ne "build" -and $args[0] -ne "run") {
 }
 
 chdir "$cwd"
-& "$PSScriptRoot\oat_start.exe" $args
+& "$PSScriptRoot\kast_start.exe" $args

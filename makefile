@@ -1,16 +1,16 @@
 ifeq ($(OS),Windows_NT)
 	CLEAN_CMD = del
-	BINARY = oat_start.exe
+	BINARY = kast_start.exe
 else
 	CLEAN_CMD = rm -f
-	BINARY = oat_start
+	BINARY = kast_start
 endif
 
 GOPATH = $(CURDIR)/../../
 
 .PHONY: all
 all:
-	go build oat_start.go
+	go build kast_start.go
 
 .PHONY: clean
 clean:
