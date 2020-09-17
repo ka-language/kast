@@ -7,11 +7,11 @@ import (
 	"reflect"
 	"strings"
 
-	. "ka/lang/types"
+	. "tusk/lang/types"
 )
 
-//export KastEncode
-func KastEncode(filename string, data map[string]*KaType) error {
+//export TuskstEncode
+func TuskstEncode(filename string, data map[string]*TuskType) error {
 
 	f, e := os.Create(filename)
 
@@ -49,35 +49,35 @@ func KastEncode(filename string, data map[string]*KaType) error {
 	return nil
 }
 
-func EncodeValue(v KaType) []rune {
+func EncodeValue(v TuskType) []rune {
 
 	var final []rune
 
 	switch v.(type) {
 
-	case KaArray:
+	case TuskArray:
 
 		final = append(final, reserved["make c-array"])
 
-		for _, v := range v.(KaArray).Array {
+		for _, v := range v.(TuskArray).Array {
 			final = append(final, EncodeValue(*v)...)
 			final = append(final, reserved["value seperator"])
 		}
 
-	case KaBool:
+	case TuskBool:
 
 		final = append(final, reserved["make bool"], reserved["escaper"])
-		if v.(KaBool).ToGoType() {
+		if v.(TuskBool).ToGoType() {
 			final = append(final, 1)
 		} else {
 			final = append(final, 0)
 		}
 
-	case KaFunc:
+	case TuskFunc:
 
 		final = append(final, reserved["start function"])
 
-		for _, v := range v.(KaFunc).Overloads {
+		for _, v := range v.(TuskFunc).Overloads {
 			for k := range v.Params {
 				final = append(final, EncodeStr([]rune(v.Types[k]))...)
 				final = append(final, reserved["seperate type-param"])
@@ -99,47 +99,47 @@ func EncodeValue(v KaType) []rune {
 
 		final = append(final, reserved["end function"])
 
-	case KaHash:
+	case TuskHash:
 
 		final = append(final, reserved["make c-hash"])
 
-		for k, v := range v.(KaHash).Hash {
+		for k, v := range v.(TuskHash).Hash {
 			final = append(final, EncodeStr([]rune(k))...)
 			final = append(final, reserved["hash key seperator"])
 			final = append(final, EncodeValue(*v)...)
 			final = append(final, reserved["value seperator"])
 		}
 
-	case KaNumber:
+	case TuskNumber:
 
 		final = append(final, reserved["start number"])
 
-		if v.(KaNumber).Integer != nil && len(*v.(KaNumber).Integer) != 0 {
-			for _, v := range *v.(KaNumber).Integer {
+		if v.(TuskNumber).Integer != nil && len(*v.(TuskNumber).Integer) != 0 {
+			for _, v := range *v.(TuskNumber).Integer {
 				final = append(final, reserved["escaper"], rune(v))
 			}
 		}
 
 		final = append(final, reserved["decimal spot"])
 
-		if v.(KaNumber).Decimal != nil && len(*v.(KaNumber).Decimal) != 0 {
-			for _, v := range *v.(KaNumber).Decimal {
+		if v.(TuskNumber).Decimal != nil && len(*v.(TuskNumber).Decimal) != 0 {
+			for _, v := range *v.(TuskNumber).Decimal {
 				final = append(final, reserved["escaper"], rune(v))
 			}
 		}
 
 		final = append(final, reserved["end number"])
 
-	case KaProto:
+	case TuskProto:
 
 		final = append(final, reserved["start proto"])
 
 		//put the name
-		final = append(final, EncodeStr([]rune(v.(KaProto).ProtoName))...)
+		final = append(final, EncodeStr([]rune(v.(TuskProto).ProtoName))...)
 		final = append(final, reserved["seperate proto name"])
 		//////////////
 
-		for k, v := range v.(KaProto).Static {
+		for k, v := range v.(TuskProto).Static {
 			final = append(final, EncodeStr([]rune(k))...)
 			final = append(final, reserved["hash key seperator"])
 			final = append(final, EncodeValue(*v)...)
@@ -148,7 +148,7 @@ func EncodeValue(v KaType) []rune {
 
 		final = append(final, reserved["seperate proto static instance"])
 
-		for k, v := range v.(KaProto).Instance {
+		for k, v := range v.(TuskProto).Instance {
 			final = append(final, EncodeStr([]rune(k))...)
 			final = append(final, reserved["hash key seperator"])
 			final = append(final, EncodeValue(*v)...)
@@ -158,7 +158,7 @@ func EncodeValue(v KaType) []rune {
 		final = append(final, reserved["seperate proto static instance"])
 
 		/*       put the access list       */
-		for k, v := range v.(KaProto).AccessList {
+		for k, v := range v.(TuskProto).AccessList {
 			final = append(final, EncodeStr([]rune(k))...)
 			final = append(final, reserved["hash key seperator"])
 
@@ -175,17 +175,17 @@ func EncodeValue(v KaType) []rune {
 
 		final = append(final, reserved["end proto"])
 
-	case KaRune:
+	case TuskRune:
 
 		final = append(final, reserved["make rune"], reserved["escaper"])
-		final = append(final, v.(KaRune).ToGoType())
+		final = append(final, v.(TuskRune).ToGoType())
 
-	case KaString:
+	case TuskString:
 
 		final = append(final, reserved["make string"])
-		final = append(final, v.(KaString).ToRuneList()...)
+		final = append(final, v.(TuskString).ToRuneList()...)
 
-	case KaUndef:
+	case TuskUndef:
 
 		final = append(final, reserved["make undef"])
 

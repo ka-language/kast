@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "ka/lang/types"
+	. "tusk/lang/types"
 	"kore"
 )
 
@@ -19,7 +19,7 @@ func versionNormalize(major, minor, bug int) int { //convert a M.M.B version to 
 	return (major * 100) + (minor * 10) + bug
 }
 
-func KastDecode(filename string) (map[string]*KaType, error) {
+func TuskstDecode(filename string) (map[string]*TuskType, error) {
 
 	NOT_OAT = errors.New("Given file is not an oat: " + filename)
 
@@ -31,7 +31,7 @@ func KastDecode(filename string) (map[string]*KaType, error) {
 
 	reader := bufio.NewReader(file)
 
-	var vers = "" //store the ka version
+	var vers = "" //store the tusk version
 	var data []rune
 	var cur bool = true
 
@@ -78,7 +78,7 @@ func KastDecode(filename string) (map[string]*KaType, error) {
 	bugv, _ := strconv.Atoi(versionSplitted[2])
 
 	if versionNormalize(majorv, minorv, bugv) > versionNormalize(kore.KoreMajor, kore.KoreMinor, kore.KoreBug) {
-		return nil, errors.New("Please upgrade your ka version to " + vers + " in order use this oat")
+		return nil, errors.New("Please upgrade your tusk version to " + vers + " in order use this oat")
 	}
 
 	var encodedVars = make([][2][]rune, 1)
@@ -118,7 +118,7 @@ func KastDecode(filename string) (map[string]*KaType, error) {
 	//remove the trailing
 	encodedVars = encodedVars[:len(encodedVars)-1]
 
-	var decodedvars = make(map[string]*KaType)
+	var decodedvars = make(map[string]*TuskType)
 
 	for _, v := range encodedVars {
 		decodedV, e := DecodeValue(v[1])
@@ -133,10 +133,10 @@ func KastDecode(filename string) (map[string]*KaType, error) {
 	return decodedvars, nil
 }
 
-func DecodeValue(cv []rune) (KaType, error) {
+func DecodeValue(cv []rune) (TuskType, error) {
 
 	if len(cv) == 0 { //if it is nil return undef
-		return KaUndef{}, nil
+		return TuskUndef{}, nil
 	}
 
 	switch cv[0] {
@@ -145,7 +145,7 @@ func DecodeValue(cv []rune) (KaType, error) {
 		cv = cv[1:]
 
 		_arr := decode2d(cv, reserved["value seperator"])
-		var kaarray KaArray
+		var tuskarray TuskArray
 
 		for _, v := range _arr {
 
@@ -157,10 +157,10 @@ func DecodeValue(cv []rune) (KaType, error) {
 			if e != nil {
 				return nil, e
 			}
-			kaarray.PushBack(val)
+			tuskarray.PushBack(val)
 		}
 
-		var kaarr KaArray
+		var kaarr TuskArray
 		return kaarr, nil
 
 	case reserved["make bool"]:
@@ -172,7 +172,7 @@ func DecodeValue(cv []rune) (KaType, error) {
 		cv = cv[2:]         //remove the "make bool" and the escaper
 		boolv := cv[0] == 1 //get the value as a bool (1 = true, 0 = false)
 
-		var kabool KaBool
+		var kabool TuskBool
 		kabool.FromGoType(boolv)
 		return kabool, nil
 
@@ -244,7 +244,7 @@ func DecodeValue(cv []rune) (KaType, error) {
 			}
 		}
 
-		var fn KaFunc
+		var fn TuskFunc
 		fn.Overloads = overloads
 
 		return fn, nil
@@ -254,7 +254,7 @@ func DecodeValue(cv []rune) (KaType, error) {
 		cv = cv[1:]
 
 		_hash := decode3d(cv, reserved["hash key seperator"], reserved["value seperator"])
-		var kahash KaHash
+		var kahash TuskHash
 
 		for _, v := range _hash {
 
@@ -304,7 +304,7 @@ func DecodeValue(cv []rune) (KaType, error) {
 			decimal[k] = int64(v)
 		}
 
-		var kanum KaNumber
+		var kanum TuskNumber
 		kanum.Integer = &integer
 		kanum.Decimal = &decimal
 		return kanum, nil
@@ -335,10 +335,10 @@ func DecodeValue(cv []rune) (KaType, error) {
 			return nil, NOT_OAT
 		}
 
-		var parseprotobody = func(part []rune) (map[string]*KaType, error) {
+		var parseprotobody = func(part []rune) (map[string]*TuskType, error) {
 			decoded := decode3d(part, reserved["hash key seperator"], reserved["value seperator"])
 
-			var protomap = make(map[string]*KaType)
+			var protomap = make(map[string]*TuskType)
 
 			for _, v := range decoded {
 
@@ -391,7 +391,7 @@ func DecodeValue(cv []rune) (KaType, error) {
 
 		}
 
-		var proto = KaProto{
+		var proto = TuskProto{
 			ProtoName:  name,
 			Static:     static,
 			Instance:   instance,
@@ -410,7 +410,7 @@ func DecodeValue(cv []rune) (KaType, error) {
 
 		//runes must have an escaper and a rune
 
-		var karune KaRune
+		var karune TuskRune
 		karune.FromGoType(cv[1])
 		return karune, nil
 
@@ -419,7 +419,7 @@ func DecodeValue(cv []rune) (KaType, error) {
 		cv = cv[1:] //remove the "make string"
 
 		runelist := DecodeStr(cv)
-		var kastr KaString
+		var kastr TuskString
 		kastr.FromRuneList(runelist)
 		return kastr, nil
 
@@ -429,7 +429,7 @@ func DecodeValue(cv []rune) (KaType, error) {
 			return nil, NOT_OAT
 		}
 
-		var undef KaUndef //declare an undefined variable
+		var undef TuskUndef //declare an undefined variable
 		return undef, nil //now return it
 
 	}

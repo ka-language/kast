@@ -1,6 +1,6 @@
 package kastenc
 
-//MAGIC is the kast magic number
+//MAGIC is the oat magic number
 const MAGIC = "KAST BETA"
 
 var reserved = map[string]rune{

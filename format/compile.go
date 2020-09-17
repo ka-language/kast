@@ -3,9 +3,9 @@ package oat
 import (
 	"fmt"
 
-	. "ka/lang/types"
+	. "tusk/lang/types"
 
-	"ka/lang/compiler"
+	"tusk/lang/compiler"
 
 	oatenc "oat/format/encoding"
 )
@@ -18,5 +18,5 @@ func Compile(params CliParams) {
 		fmt.Println(ce)
 	}
 
-	oatenc.KastEncode(params.Output, vars)
+	oatenc.TuskstEncode(params.Output, vars)
 }
