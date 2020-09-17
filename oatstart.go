@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	oat "oat/format"
-	suite "tusk-suite"
-	"tusk/lang/types"
+	"github.com/tusklang/kore"
+	oat "github.com/tusklang/oat/format"
+	"github.com/tusklang/tusk/lang/types"
 )
 
 var output = flag.String("out", "", "Set output file")
 
 func init() {
-	flag.Usage = suite.Usagef("Tuskst")
+	flag.Usage = kore.Usagef("Tuskst")
 }
 
 func main() {

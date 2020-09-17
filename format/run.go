@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	oatenc "oat/format/encoding"
-	"tusk/lang/interpreter"
-	"tusk/lang/types"
+	oatenc "github.com/tusklang/oat/format/encoding"
+	"github.com/tusklang/tusk/lang/interpreter"
+	"github.com/tusklang/tusk/lang/types"
 )
 
 func Run(params types.CliParams) {

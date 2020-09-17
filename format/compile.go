@@ -3,11 +3,11 @@ package oat
 import (
 	"fmt"
 
-	. "tusk/lang/types"
+	. "github.com/tusklang/tusk/lang/types"
 
-	"tusk/lang/compiler"
+	"github.com/tusklang/tusk/lang/compiler"
 
-	oatenc "oat/format/encoding"
+	oatenc "github.com/tusklang/oat/format/encoding"
 )
 
 //export Compile

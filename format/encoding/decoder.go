@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	. "tusk/lang/types"
-	"kore"
+	. "github.com/tusklang/tusk/lang/types"
+	"github.com/tusklang/kore"
 )
 
 var NOT_OAT error

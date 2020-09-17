@@ -2,12 +2,12 @@ package kastenc
 
 import (
 	"fmt"
-	"kore"
+	"github.com/tusklang/kore"
 	"os"
 	"reflect"
 	"strings"
 
-	. "tusk/lang/types"
+	. "github.com/tusklang/tusk/lang/types"
 )
 
 //export TuskstEncode
