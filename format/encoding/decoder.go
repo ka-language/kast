@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/tusklang/tusk/lang/types"
 	"github.com/tusklang/kore"
+	. "github.com/tusklang/tusk/lang/types"
 )
 
 var NOT_OAT error
@@ -262,13 +262,16 @@ func DecodeValue(cv []rune) (TuskType, error) {
 				continue
 			}
 
-			key := DecodeStr(v[0])
+			key, e := DecodeValue(v[0])
+			if e != nil {
+				return nil, e
+			}
 			val, e := DecodeValue(v[1])
 			if e != nil {
 				return nil, e
 			}
 
-			kahash.Set(string(key), val)
+			kahash.Set(&key, val)
 		}
 
 		return kahash, nil
@@ -430,7 +433,7 @@ func DecodeValue(cv []rune) (TuskType, error) {
 		}
 
 		var undef TuskUndef //declare an undefined variable
-		return undef, nil //now return it
+		return undef, nil   //now return it
 
 	}
 

@@ -15,7 +15,7 @@ import (
 var output = flag.String("out", "", "Set output file")
 
 func init() {
-	flag.Usage = kore.Usagef("Tuskst")
+	flag.Usage = kore.Usagef("Oat")
 }
 
 func main() {
