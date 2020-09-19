@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/tusklang/kore"
+	"github.com/tusklang/tools"
 	oat "github.com/tusklang/oat/format"
 	"github.com/tusklang/tusk/lang/types"
 )
@@ -15,7 +15,7 @@ import (
 var output = flag.String("out", "", "Set output file")
 
 func init() {
-	flag.Usage = kore.Usagef("Oat")
+	flag.Usage = tools.Usagef("Oat")
 }
 
 func main() {

@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/tusklang/kore"
+	"github.com/tusklang/tools"
 
 	. "github.com/tusklang/tusk/lang/types"
 )
@@ -22,7 +22,7 @@ func TuskstEncode(filename string, data map[string]*TuskType) error {
 
 	//versioning and magic #
 	fmt.Fprint(f, MAGIC)
-	fmt.Fprintf(f, "%d.%d.%d\n", kore.KoreMajor, kore.KoreMinor, kore.KoreBug)
+	fmt.Fprintf(f, "%d.%d.%d\n", tools.TuskMajor, tools.TuskMinor, tools.TuskBug)
 	////////////////////////
 
 	for k, v := range data {

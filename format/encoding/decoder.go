@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tusklang/kore"
+	"github.com/tusklang/tools"
 	. "github.com/tusklang/tusk/lang/types"
 )
 
@@ -77,7 +77,7 @@ func TuskstDecode(filename string) (map[string]*TuskType, error) {
 	minorv, _ := strconv.Atoi(versionSplitted[1])
 	bugv, _ := strconv.Atoi(versionSplitted[2])
 
-	if versionNormalize(majorv, minorv, bugv) > versionNormalize(kore.KoreMajor, kore.KoreMinor, kore.KoreBug) {
+	if versionNormalize(majorv, minorv, bugv) > versionNormalize(tools.TuskMajor, tools.TuskMinor, tools.TuskBug) {
 		return nil, errors.New("Please upgrade your tusk version to " + vers + " in order use this oat")
 	}
 
