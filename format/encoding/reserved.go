@@ -1,7 +1,7 @@
 package kastenc
 
 //MAGIC is the oat magic number
-const MAGIC = "KAST BETA"
+const MAGIC = "OAT BETA"
 
 var reserved = map[string]rune{
 	"next action":                    'అ',
