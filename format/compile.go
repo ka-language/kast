@@ -18,5 +18,5 @@ func Compile(params CliParams) {
 		fmt.Println(ce)
 	}
 
-	oatenc.TuskstEncode(params.Output, vars)
+	oatenc.OatEncode(params.Output, vars)
 }

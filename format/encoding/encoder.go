@@ -1,4 +1,4 @@
-package kastenc
+package oatenc
 
 import (
 	"fmt"
@@ -11,8 +11,8 @@ import (
 	. "github.com/tusklang/tusk/lang/types"
 )
 
-//export TuskstEncode
-func TuskstEncode(filename string, data map[string]*TuskType) error {
+//export OatEncode
+func OatEncode(filename string, data map[string]*TuskType) error {
 
 	f, e := os.Create(filename)
 
@@ -105,7 +105,7 @@ func EncodeValue(v TuskType) []rune {
 		final = append(final, reserved["make c-hash"])
 
 		for k, v := range v.(TuskHash).Hash {
-			final = append(final, EncodeValue(*k)...)
+			final = append(final, EncodeStr([]rune(k))...)
 			final = append(final, reserved["hash key seperator"])
 			final = append(final, EncodeValue(*v)...)
 			final = append(final, reserved["value seperator"])

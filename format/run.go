@@ -10,7 +10,7 @@ import (
 )
 
 func Run(params types.CliParams) {
-	d, e := oatenc.TuskstDecode(params.Name)
+	d, e := oatenc.OatDecode(params.Name)
 	if e != nil {
 		fmt.Println(e)
 		os.Exit(1)

@@ -1,4 +1,4 @@
-package kastenc
+package oatenc
 
 //MAGIC is the oat magic number
 const MAGIC = "OAT BETA"
@@ -23,6 +23,8 @@ var reserved = map[string]rune{
 	"let":                            15,
 	"cast":                           16,
 	"::":                             17,
+	":":                              360,
+	"?":                              361,
 	"+":                              18,
 	"-":                              19,
 	"*":                              20,

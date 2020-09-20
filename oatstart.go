@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/tusklang/tools"
 	oat "github.com/tusklang/oat/format"
+	"github.com/tusklang/tools"
 	"github.com/tusklang/tusk/lang/types"
 )
 
@@ -32,7 +32,7 @@ func main() {
 	var filename = flag.Arg(1)
 	cli_params.Name = filename
 
-	if *output == "" {
+	if *output == "" && opt != "run" {
 		*output = strings.TrimSuffix(filename, filepath.Ext(filename)) + ".oat" //remove the .tusk and replace with .oat
 	}
 	cli_params.Output = *output
