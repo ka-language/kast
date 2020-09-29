@@ -225,21 +225,10 @@ func DecodeValue(cv []rune) (TuskType, error) {
 				return nil, e
 			}
 
-			_varrefs := decode2d(encbody[1], reserved["value seperator"]) //seperate all of the var references
-			if len(_varrefs[len(_varrefs)-1]) == 0 {                      //remove the last empty one
-				_varrefs = _varrefs[:len(_varrefs)-1]
-			}
-			var varrefs = make([]string, len(_varrefs)) //alloc the space of the []string var refs
-
-			for k, v := range _varrefs {
-				varrefs[k] = string(DecodeStr(v))
-			}
-
 			overloads[kk] = Overload{
-				Params:  pnames,
-				Types:   types,
-				Body:    decbody,
-				VarRefs: varrefs,
+				Params: pnames,
+				Types:  types,
+				Body:   decbody,
 			}
 		}
 

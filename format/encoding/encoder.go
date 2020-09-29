@@ -87,13 +87,6 @@ func EncodeValue(v TuskType) []rune {
 			}
 			final = append(final, reserved["param body split"])
 			final = append(final, EncodeActions(v.Body)...)
-			final = append(final, reserved["body var-ref split"])
-
-			//list all of the variables that this function uses
-			for _, v := range v.VarRefs {
-				final = append(final, EncodeStr([]rune(v))...)
-				final = append(final, reserved["value seperator"])
-			}
 
 			final = append(final, reserved["seperate overload"])
 		}

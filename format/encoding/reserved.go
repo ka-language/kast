@@ -105,6 +105,5 @@ var reserved = map[string]rune{
 	"seperate array":                 355,
 	"seperate hash":                  356,
 	"seperate overload":              357,
-	"body var-ref split":             358,
 	"sub value seperator":            359,
 }
