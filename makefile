@@ -3,7 +3,7 @@ ifeq ($(OS),Windows_NT)
 	BINARY = oatstart.exe
 else
 	CLEAN_CMD = rm -f
-	BINARY = oatstart
+	BINARY = oatstart.out
 endif
 
 GOPATH = $(CURDIR)/../../../../
@@ -13,7 +13,7 @@ default: all
 
 .PHONY: all
 all:
-	go build oatstart.go
+	go build -o $(BINARY) oatstart.go
 
 .PHONY: clean
 clean:
