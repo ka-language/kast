@@ -7,6 +7,7 @@ var reserved = map[string]rune{
 	"next action":                    'అ',
 	"escaper":                        0,
 	"var":                            1,
+	"declare":                        362,
 	"log":                            2,
 	"print":                          3,
 	"if":                             4,
