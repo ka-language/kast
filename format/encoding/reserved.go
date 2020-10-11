@@ -13,6 +13,8 @@ var reserved = map[string]rune{
 	"if":                             4,
 	"elif":                           5,
 	"else":                           6,
+	"try":                            363,
+	"catch":                          364,
 	"condition":                      7,
 	"while":                          8,
 	"each":                           9,
