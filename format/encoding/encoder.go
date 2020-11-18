@@ -151,22 +151,6 @@ func EncodeValue(v TuskType) []rune {
 
 		final = append(final, reserved["seperate proto static instance"])
 
-		/*       put the access list       */
-		for k, v := range v.(TuskProto).AccessList {
-			final = append(final, EncodeStr([]rune(k))...)
-			final = append(final, reserved["hash key seperator"])
-
-			for _, vv := range v {
-				final = append(final, EncodeStr([]rune(vv))...)
-				final = append(final, reserved["sub value seperator"])
-			}
-
-			final = append(final, reserved["value seperator"])
-		}
-		/////////////////////////////////////
-
-		final = append(final, reserved["seperate proto static instance"]) //also put the seperator here to denote the access list
-
 		final = append(final, reserved["end proto"])
 
 	case TuskRune:

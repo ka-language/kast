@@ -355,35 +355,10 @@ func DecodeValue(cv []rune) (TuskType, error) {
 		}
 		///////////////////////////////////
 
-		//also decode the access list (if there is one)
-		var accesslist = make(map[string][]string)
-
-		if len(body) == 3 {
-			decodedAccessList := decode3d(body[2], reserved["hash key seperator"], reserved["value seperator"])
-
-			for _, vv := range decodedAccessList {
-
-				if len(vv[0]) == 0 { //skip empty values
-					continue
-				}
-
-				curlist := decode2d(vv[1], reserved["sub value seperator"])
-				var parsedlist = make([]string, len(curlist))
-
-				for kk, vvv := range curlist {
-					parsedlist[kk] = string(DecodeStr(vvv))
-				}
-
-				accesslist[string(DecodeStr(vv[0]))] = parsedlist
-			}
-
-		}
-
 		var proto = TuskProto{
-			ProtoName:  name,
-			Static:     static,
-			Instance:   instance,
-			AccessList: accesslist,
+			ProtoName: name,
+			Static:    static,
+			Instance:  instance,
 		}
 
 		return proto, nil
