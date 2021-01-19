@@ -60,11 +60,13 @@ func EncodeValue(v TuskType) []rune {
 
 		final = append(final, reserved["make c-array"])
 
-		for _, v := range v.(TuskArray).Array {
-			final = append(final, EncodeValue(*v)...)
-			final = append(final, reserved["value seperator"])
-		}
+		v.Range(func(_, v *TuskType) (Returner, *TuskError) { //range through the array
 
+			final = append(final, EncodeValue(*v)...) //push the encoded item at the index
+			final = append(final, reserved["value seperator"])
+
+			return Returner{}, nil
+		})
 	case TuskBool:
 
 		final = append(final, reserved["make bool"], reserved["escaper"])
@@ -97,12 +99,16 @@ func EncodeValue(v TuskType) []rune {
 
 		final = append(final, reserved["make c-hash"])
 
-		for k, v := range v.(TuskHash).Hash {
-			final = append(final, EncodeStr([]rune(k))...)
-			final = append(final, reserved["hash key seperator"])
-			final = append(final, EncodeValue(*v)...)
-			final = append(final, reserved["value seperator"])
-		}
+		v.(TuskHash).Range(func(k, v *TuskType) (Returner, *TuskError) { //ranges through the hash
+
+			//append all the values
+			final = append(final, EncodeStr([]rune((*k).Format()))...) //key
+			final = append(final, reserved["hash key seperator"])      //key/value del
+			final = append(final, EncodeValue(*v)...)                  //value
+			final = append(final, reserved["value seperator"])         //new value del
+
+			return Returner{}, nil
+		})
 
 	case TuskNumber:
 
